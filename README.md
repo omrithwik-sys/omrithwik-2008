@@ -1,1 +1,617 @@
-https://github.com/omrithwik-sys/omrithwik-2008.git
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StockSense</title>
+<style>
+:root{
+  --bg:#f5f6f8;--panel:#fff;--text:#1a1d23;--muted:#6b7280;--border:#e5e7eb;
+  --accent:#2563eb;--accent-d:#1d4ed8;--danger:#dc2626;--warn:#d97706;--ok:#16a34a;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#14161a;--panel:#1c1f26;--text:#e8eaed;--muted:#9aa1ac;--border:#2b2f38;}
+}
+:root[data-theme="dark"]{--bg:#14161a;--panel:#1c1f26;--text:#e8eaed;--muted:#9aa1ac;--border:#2b2f38;}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--text);width:100%}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.btn{padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-d)}
+.btn-sm{padding:4px 8px;font-size:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600;font-size:12px}
+.badge{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.b-draft{background:#e5e7eb;color:#374151}
+.b-waiting{background:#fef3c7;color:#92400e}
+.b-done{background:#dcfce7;color:#166534}
+.b-low{background:#fee2e2;color:#991b1b}
+#app{height:100%;display:flex;flex-direction:column}
+/* Auth */
+#authScreen{min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
+.authBox{width:100%;max-width:360px}
+.authBox h1{font-size:22px;margin:0 0 4px}
+.authBox p{color:var(--muted);margin:0 0 20px;font-size:13px}
+.field{margin-bottom:12px}
+.err{color:var(--danger);font-size:12px;margin-top:6px}
+.linkbtn{background:none;border:none;color:var(--accent);padding:0;font-size:13px}
+/* Main layout */
+#main{display:none;flex:1;min-height:0}
+#sidebar{width:210px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+#sidebar .brand{padding:16px;font-weight:700;font-size:16px;border-bottom:1px solid var(--border)}
+.navitem{padding:10px 16px;color:var(--muted);border:none;background:none;text-align:left;width:100%;font-size:13px;border-left:3px solid transparent}
+.navitem.active{color:var(--accent);background:rgba(37,99,235,.08);border-left-color:var(--accent);font-weight:600}
+.navsec{padding:12px 16px 4px;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}
+#content{flex:1;overflow-y:auto;padding:20px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.topbar h2{margin:0;font-size:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px}
+.kpi .num{font-size:24px;font-weight:700}
+.kpi .lbl{color:var(--muted);font-size:12px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.filters select,.filters input{width:auto;min-width:120px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:var(--panel);border-radius:10px;padding:20px;width:100%;max-width:460px;max-height:85vh;overflow-y:auto}
+.modal h3{margin-top:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lineitem{display:grid;grid-template-columns:2fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end}
+.mtop{display:flex;justify-content:space-between;align-items:center}
+.empty{color:var(--muted);text-align:center;padding:30px;font-size:13px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:13px;z-index:100;display:none}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+@media (max-width:640px){
+  #sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-100%);transition:transform .2s;padding-top:env(safe-area-inset-top,0px)}
+  #sidebar.open{transform:translateX(0)}
+  #main{position:relative}
+  .row2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="authScreen">
+  <div class="authBox card">
+    <div id="authLogin">
+      <h1>📦 StockSense</h1>
+      <p>Sign in to your inventory workspace</p>
+      <div class="field"><label>Email</label><input id="li_email" type="email" placeholder="you@company.com"></div>
+      <div class="field"><label>Password</label><input id="li_pass" type="password" placeholder="••••••••"></div>
+      <div class="err" id="li_err"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="doLogin()">Log In</button>
+      <div style="margin-top:12px;display:flex;justify-content:space-between">
+        <button class="linkbtn" onclick="showScreen('authSignup')">Create account</button>
+        <button class="linkbtn" onclick="showScreen('authForgot')">Forgot password?</button>
+      </div>
+      <p style="margin-top:14px;font-size:12px;color:var(--muted)">Demo: sign up first — no server, data stays in this browser.</p>
+    </div>
+    <div id="authSignup" style="display:none">
+      <h1>Create account</h1>
+      <p>Set up your StockSense workspace</p>
+      <div class="field"><label>Full name</label><input id="su_name" placeholder="Jane Doe"></div>
+      <div class="field"><label>Email</label><input id="su_email" type="email" placeholder="you@company.com"></div>
+      <div class="field"><label>Password</label><input id="su_pass" type="password" placeholder="min 6 characters"></div>
+      <div class="err" id="su_err"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="doSignup()">Sign Up</button>
+      <button class="linkbtn" style="margin-top:12px" onclick="showScreen('authLogin')">Back to log in</button>
+    </div>
+    <div id="authForgot" style="display:none">
+      <h1>Reset password</h1>
+      <div id="fg_step1">
+        <p>Enter your email — we'll generate an OTP.</p>
+        <div class="field"><label>Email</label><input id="fg_email" type="email"></div>
+        <div class="err" id="fg_err"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="sendOtp()">Send OTP</button>
+      </div>
+      <div id="fg_step2" style="display:none">
+        <p>OTP (demo — shown here instead of email): <b id="fg_otp_display"></b></p>
+        <div class="field"><label>Enter OTP</label><input id="fg_otp_input"></div>
+        <div class="field"><label>New password</label><input id="fg_newpass" type="password"></div>
+        <div class="err" id="fg_err2"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="resetPass()">Reset Password</button>
+      </div>
+      <button class="linkbtn" style="margin-top:12px" onclick="showScreen('authLogin')">Back to log in</button>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="sidebar">
+    <div class="brand">📦 StockSense</div>
+    <div class="navsec">Overview</div>
+    <button class="navitem" data-v="dashboard" onclick="nav('dashboard')">Dashboard</button>
+    <div class="navsec">Products</div>
+    <button class="navitem" data-v="products" onclick="nav('products')">Products</button>
+    <div class="navsec">Operations</div>
+    <button class="navitem" data-v="receipts" onclick="nav('receipts')">Receipts</button>
+    <button class="navitem" data-v="deliveries" onclick="nav('deliveries')">Delivery Orders</button>
+    <button class="navitem" data-v="transfers" onclick="nav('transfers')">Internal Transfers</button>
+    <button class="navitem" data-v="adjustments" onclick="nav('adjustments')">Inventory Adjustment</button>
+    <button class="navitem" data-v="ledger" onclick="nav('ledger')">Move History</button>
+    <div class="navsec">Settings</div>
+    <button class="navitem" data-v="warehouses" onclick="nav('warehouses')">Warehouses</button>
+    <div class="navsec">Account</div>
+    <button class="navitem" data-v="profile" onclick="nav('profile')">My Profile</button>
+    <button class="navitem" onclick="logout()">Logout</button>
+  </div>
+  <div id="content"></div>
+</div>
+
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- Storage ----------
+const DB_KEY='stocksense_db_v1';
+function load(){ try{return JSON.parse(localStorage.getItem(DB_KEY))}catch(e){return null} }
+function save(){ try{localStorage.setItem(DB_KEY, JSON.stringify(DB))}catch(e){} }
+function seed(){
+  return {
+    users:[], session:null, resetOtp:null,
+    warehouses:[{id:'w1',name:'Main Warehouse'},{id:'w2',name:'Production Floor'}],
+    products:[
+      {id:'p1',name:'Steel Rods',sku:'STL-001',category:'Raw Material',uom:'kg',reorder:50,stock:{w1:80,w2:0}},
+      {id:'p2',name:'Wooden Chairs',sku:'CHR-002',category:'Finished Goods',uom:'pcs',reorder:10,stock:{w1:15,w2:0}}
+    ],
+    receipts:[], deliveries:[], transfers:[], adjustments:[], ledger:[],
+    seq:1
+  };
+}
+let DB = load() || seed();
+function nextId(p){ return p+(DB.seq++); }
+
+// ---------- Auth ----------
+function showScreen(id){
+  ['authLogin','authSignup','authForgot'].forEach(s=>document.getElementById(s).style.display = s===id?'block':'none');
+  document.getElementById('fg_step1').style.display='block';
+  document.getElementById('fg_step2').style.display='none';
+}
+function doSignup(){
+  const name=document.getElementById('su_name').value.trim();
+  const email=document.getElementById('su_email').value.trim().toLowerCase();
+  const pass=document.getElementById('su_pass').value;
+  const err=document.getElementById('su_err'); err.textContent='';
+  if(!name||!email||!pass){err.textContent='All fields are required.';return;}
+  if(pass.length<6){err.textContent='Password must be at least 6 characters.';return;}
+  if(DB.users.find(u=>u.email===email)){err.textContent='An account with this email already exists.';return;}
+  DB.users.push({name,email,pass}); DB.session=email; save(); enterApp();
+}
+function doLogin(){
+  const email=document.getElementById('li_email').value.trim().toLowerCase();
+  const pass=document.getElementById('li_pass').value;
+  const err=document.getElementById('li_err'); err.textContent='';
+  const u=DB.users.find(u=>u.email===email && u.pass===pass);
+  if(!u){err.textContent='Invalid email or password.';return;}
+  DB.session=email; save(); enterApp();
+}
+function sendOtp(){
+  const email=document.getElementById('fg_email').value.trim().toLowerCase();
+  const err=document.getElementById('fg_err'); err.textContent='';
+  if(!DB.users.find(u=>u.email===email)){err.textContent='No account found with this email.';return;}
+  const otp=String(Math.floor(100000+Math.random()*900000));
+  DB.resetOtp={email,otp}; save();
+  document.getElementById('fg_otp_display').textContent=otp;
+  document.getElementById('fg_step1').style.display='none';
+  document.getElementById('fg_step2').style.display='block';
+}
+function resetPass(){
+  const otp=document.getElementById('fg_otp_input').value.trim();
+  const np=document.getElementById('fg_newpass').value;
+  const err=document.getElementById('fg_err2'); err.textContent='';
+  if(!DB.resetOtp||otp!==DB.resetOtp.otp){err.textContent='Incorrect OTP.';return;}
+  if(np.length<6){err.textContent='Password must be at least 6 characters.';return;}
+  const u=DB.users.find(u=>u.email===DB.resetOtp.email); u.pass=np; DB.resetOtp=null; save();
+  toast('Password reset — please log in.'); showScreen('authLogin');
+}
+function logout(){ DB.session=null; save(); document.getElementById('main').style.display='none'; document.getElementById('authScreen').style.display='flex'; showScreen('authLogin'); }
+function enterApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('main').style.display='flex';
+  nav('dashboard');
+}
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
+
+// ---------- Helpers ----------
+function currentUser(){ return DB.users.find(u=>u.email===DB.session); }
+function totalStock(p){ return Object.values(p.stock).reduce((a,b)=>a+b,0); }
+function isLow(p){ return totalStock(p) <= (p.reorder||0); }
+function whName(id){ const w=DB.warehouses.find(w=>w.id===id); return w?w.name:id; }
+function prodName(id){ const p=DB.products.find(p=>p.id===id); return p?p.name+' ('+p.sku+')':id; }
+function statusBadge(s){ const cls=s==='Done'?'b-done':(s==='Waiting'?'b-waiting':'b-draft'); return `<span class="badge ${cls}">${s}</span>`; }
+function addLedger(type, productId, qty, location, ref){
+  DB.ledger.unshift({id:nextId('l'), type, productId, qty, location, ref, date:new Date().toISOString()});
+}
+function openModal(html){ document.getElementById('modalBody').innerHTML=html; document.getElementById('modalBg').style.display='flex'; }
+function closeModal(){ document.getElementById('modalBg').style.display='none'; }
+
+// ---------- Nav ----------
+let CURRENT='dashboard';
+function nav(v){
+  CURRENT=v;
+  document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('active', b.dataset.v===v));
+  render();
+}
+function render(){
+  const c=document.getElementById('content');
+  const fns={dashboard:renderDashboard,products:renderProducts,receipts:renderReceipts,deliveries:renderDeliveries,
+    transfers:renderTransfers,adjustments:renderAdjustments,ledger:renderLedger,warehouses:renderWarehouses,profile:renderProfile};
+  c.innerHTML = fns[CURRENT]();
+}
+
+// ---------- Dashboard ----------
+function renderDashboard(){
+  const total=DB.products.length;
+  const low=DB.products.filter(isLow).length;
+  const pendingR=DB.receipts.filter(r=>r.status!=='Done').length;
+  const pendingD=DB.deliveries.filter(d=>d.status!=='Done').length;
+  const schedT=DB.transfers.filter(t=>t.status!=='Done').length;
+  return `
+  <div class="topbar"><h2>Dashboard</h2></div>
+  <div class="kpis">
+    <div class="kpi"><div class="num">${total}</div><div class="lbl">Total Products</div></div>
+    <div class="kpi"><div class="num">${low}</div><div class="lbl">Low / Out of Stock</div></div>
+    <div class="kpi"><div class="num">${pendingR}</div><div class="lbl">Pending Receipts</div></div>
+    <div class="kpi"><div class="num">${pendingD}</div><div class="lbl">Pending Deliveries</div></div>
+    <div class="kpi"><div class="num">${schedT}</div><div class="lbl">Transfers Scheduled</div></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Low stock alerts</h3>
+    ${DB.products.filter(isLow).length? `<table><tr><th>Product</th><th>SKU</th><th>Total Stock</th><th>Reorder Level</th></tr>
+      ${DB.products.filter(isLow).map(p=>`<tr><td>${p.name}</td><td>${p.sku}</td><td>${totalStock(p)} ${p.uom}</td><td>${p.reorder}</td></tr>`).join('')}
+      </table>` : '<div class="empty">All products are above reorder level 🎉</div>'}
+  </div>`;
+}
+
+// ---------- Products ----------
+function renderProducts(){
+  const search=(window._pSearch||'').toLowerCase();
+  const cat=window._pCat||'';
+  let list=DB.products.filter(p=> (p.name.toLowerCase().includes(search)||p.sku.toLowerCase().includes(search)) && (!cat||p.category===cat));
+  const cats=[...new Set(DB.products.map(p=>p.category))];
+  return `
+  <div class="topbar"><h2>Products</h2><button class="btn btn-primary" onclick="productModal()">+ New Product</button></div>
+  <div class="filters">
+    <input placeholder="Search name or SKU" value="${window._pSearch||''}" oninput="window._pSearch=this.value;render()">
+    <select onchange="window._pCat=this.value;render()"><option value="">All categories</option>${cats.map(c=>`<option ${c===cat?'selected':''}>${c}</option>`).join('')}</select>
+  </div>
+  <div class="card">
+  ${list.length? `<table><tr><th>Name</th><th>SKU</th><th>Category</th><th>UoM</th><th>Stock by location</th><th>Total</th><th>Status</th><th></th></tr>
+    ${list.map(p=>`<tr>
+      <td>${p.name}</td><td>${p.sku}</td><td>${p.category}</td><td>${p.uom}</td>
+      <td>${Object.entries(p.stock).map(([w,q])=>`${whName(w)}: ${q}`).join(', ')}</td>
+      <td>${totalStock(p)}</td>
+      <td>${isLow(p)?'<span class="badge b-low">Low</span>':'<span class="badge b-done">OK</span>'}</td>
+      <td><button class="btn btn-sm" onclick="productModal('${p.id}')">Edit</button></td>
+    </tr>`).join('')}
+    </table>` : '<div class="empty">No products found.</div>'}
+  </div>`;
+}
+function productModal(id){
+  const p = id? DB.products.find(p=>p.id===id) : null;
+  openModal(`
+    <h3>${p?'Edit Product':'New Product'}</h3>
+    <div class="field"><label>Name</label><input id="m_name" value="${p?p.name:''}"></div>
+    <div class="row2">
+      <div class="field"><label>SKU / Code</label><input id="m_sku" value="${p?p.sku:''}"></div>
+      <div class="field"><label>Unit of Measure</label><input id="m_uom" value="${p?p.uom:'pcs'}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Category</label><input id="m_cat" value="${p?p.category:''}"></div>
+      <div class="field"><label>Reorder level</label><input id="m_reorder" type="number" value="${p?p.reorder:0}"></div>
+    </div>
+    ${p?'':`<div class="field"><label>Initial stock location</label>
+      <select id="m_wh">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
+      <div class="field"><label>Initial stock qty</label><input id="m_qty" type="number" value="0"></div>`}
+    <div class="mtop" style="margin-top:14px">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct(${p?`'${p.id}'`:'null'})">Save</button>
+    </div>
+  `);
+}
+function saveProduct(id){
+  const name=document.getElementById('m_name').value.trim();
+  const sku=document.getElementById('m_sku').value.trim();
+  const uom=document.getElementById('m_uom').value.trim()||'pcs';
+  const cat=document.getElementById('m_cat').value.trim()||'Uncategorized';
+  const reorder=Number(document.getElementById('m_reorder').value)||0;
+  if(!name||!sku){toast('Name and SKU are required.');return;}
+  if(id){
+    const p=DB.products.find(p=>p.id===id);
+    Object.assign(p,{name,sku,uom,category:cat,reorder});
+  } else {
+    const wh=document.getElementById('m_wh').value;
+    const qty=Number(document.getElementById('m_qty').value)||0;
+    const np={id:nextId('p'),name,sku,uom,category:cat,reorder,stock:{}};
+    DB.warehouses.forEach(w=>np.stock[w.id]=0);
+    np.stock[wh]=qty;
+    if(qty>0) addLedger('Initial Stock', np.id, qty, wh, 'Product creation');
+    DB.products.push(np);
+  }
+  save(); closeModal(); render(); toast('Product saved.');
+}
+
+// ---------- Generic doc list (receipts/deliveries/transfers) ----------
+function lineRowsHtml(existingLines){
+  const lines = existingLines || [{productId:'',qty:1}];
+  return lines.map((l,i)=>lineRow(l,i)).join('') ;
+}
+function lineRow(l,i){
+  return `<div class="lineitem" data-i="${i}">
+    <div><label>Product</label><select class="ln_prod">${DB.products.map(p=>`<option value="${p.id}" ${p.id===l.productId?'selected':''}>${p.name} (${p.sku})</option>`).join('')}</select></div>
+    <div><label>Qty</label><input class="ln_qty" type="number" min="1" value="${l.qty}"></div>
+    <button class="btn btn-sm" onclick="this.closest('.lineitem').remove()">✕</button>
+  </div>`;
+}
+function addLineRow(containerId){
+  const c=document.getElementById(containerId);
+  const div=document.createElement('div');
+  div.innerHTML=lineRow({productId:DB.products[0]?DB.products[0].id:'',qty:1},c.children.length);
+  c.appendChild(div.firstElementChild);
+}
+function collectLines(containerId){
+  const rows=[...document.getElementById(containerId).querySelectorAll('.lineitem')];
+  return rows.map(r=>({productId:r.querySelector('.ln_prod').value, qty:Number(r.querySelector('.ln_qty').value)||0})).filter(l=>l.productId && l.qty>0);
+}
+
+// ---------- Receipts ----------
+function renderReceipts(){
+  const list=DB.receipts;
+  return `
+  <div class="topbar"><h2>Receipts (Incoming Stock)</h2><button class="btn btn-primary" onclick="receiptModal()">+ New Receipt</button></div>
+  <div class="card">
+  ${list.length? `<table><tr><th>Ref</th><th>Supplier</th><th>Date</th><th>Lines</th><th>Status</th><th></th></tr>
+    ${list.map(r=>`<tr><td>${r.id}</td><td>${r.supplier}</td><td>${new Date(r.date).toLocaleDateString()}</td>
+      <td>${r.lines.map(l=>prodName(l.productId)+' x'+l.qty).join(', ')}</td><td>${statusBadge(r.status)}</td>
+      <td>${r.status!=='Done'?`<button class="btn btn-sm btn-primary" onclick="validateReceipt('${r.id}')">Validate</button>`:''}</td></tr>`).join('')}
+    </table>`:'<div class="empty">No receipts yet.</div>'}
+  </div>`;
+}
+function receiptModal(){
+  openModal(`
+    <h3>New Receipt</h3>
+    <div class="field"><label>Supplier</label><input id="r_supplier" placeholder="Supplier name"></div>
+    <div class="field"><label>Destination warehouse</label><select id="r_wh">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
+    <label>Products</label>
+    <div id="r_lines">${lineRowsHtml()}</div>
+    <button class="btn btn-sm" onclick="addLineRow('r_lines')">+ Add line</button>
+    <div class="mtop" style="margin-top:14px">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveReceipt()">Create (Draft)</button>
+    </div>
+  `);
+}
+function saveReceipt(){
+  const supplier=document.getElementById('r_supplier').value.trim();
+  const wh=document.getElementById('r_wh').value;
+  const lines=collectLines('r_lines');
+  if(!supplier||!lines.length){toast('Supplier and at least one product line are required.');return;}
+  DB.receipts.push({id:nextId('REC-'),supplier,wh,lines,status:'Waiting',date:new Date().toISOString()});
+  save(); closeModal(); render(); toast('Receipt created.');
+}
+function validateReceipt(id){
+  const r=DB.receipts.find(r=>r.id===id); if(!r||r.status==='Done')return;
+  r.lines.forEach(l=>{
+    const p=DB.products.find(p=>p.id===l.productId);
+    p.stock[r.wh]=(p.stock[r.wh]||0)+l.qty;
+    addLedger('Receipt', l.productId, l.qty, r.wh, r.id);
+  });
+  r.status='Done'; save(); render(); toast('Receipt validated — stock increased.');
+}
+
+// ---------- Deliveries ----------
+function renderDeliveries(){
+  const list=DB.deliveries;
+  return `
+  <div class="topbar"><h2>Delivery Orders (Outgoing Stock)</h2><button class="btn btn-primary" onclick="deliveryModal()">+ New Delivery</button></div>
+  <div class="card">
+  ${list.length? `<table><tr><th>Ref</th><th>Customer</th><th>Date</th><th>Lines</th><th>Status</th><th></th></tr>
+    ${list.map(d=>`<tr><td>${d.id}</td><td>${d.customer}</td><td>${new Date(d.date).toLocaleDateString()}</td>
+      <td>${d.lines.map(l=>prodName(l.productId)+' x'+l.qty).join(', ')}</td><td>${statusBadge(d.status)}</td>
+      <td>${d.status!=='Done'?`<button class="btn btn-sm btn-primary" onclick="validateDelivery('${d.id}')">Pick, Pack & Validate</button>`:''}</td></tr>`).join('')}
+    </table>`:'<div class="empty">No delivery orders yet.</div>'}
+  </div>`;
+}
+function deliveryModal(){
+  openModal(`
+    <h3>New Delivery Order</h3>
+    <div class="field"><label>Customer</label><input id="d_customer" placeholder="Customer name"></div>
+    <div class="field"><label>Source warehouse</label><select id="d_wh">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
+    <label>Products</label>
+    <div id="d_lines">${lineRowsHtml()}</div>
+    <button class="btn btn-sm" onclick="addLineRow('d_lines')">+ Add line</button>
+    <div class="mtop" style="margin-top:14px">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDelivery()">Create (Draft)</button>
+    </div>
+  `);
+}
+function saveDelivery(){
+  const customer=document.getElementById('d_customer').value.trim();
+  const wh=document.getElementById('d_wh').value;
+  const lines=collectLines('d_lines');
+  if(!customer||!lines.length){toast('Customer and at least one product line are required.');return;}
+  DB.deliveries.push({id:nextId('DO-'),customer,wh,lines,status:'Waiting',date:new Date().toISOString()});
+  save(); closeModal(); render(); toast('Delivery order created.');
+}
+function validateDelivery(id){
+  const d=DB.deliveries.find(d=>d.id===id); if(!d||d.status==='Done')return;
+  for(const l of d.lines){
+    const p=DB.products.find(p=>p.id===l.productId);
+    if((p.stock[d.wh]||0) < l.qty){ toast(`Not enough stock of ${p.name} in ${whName(d.wh)}.`); return; }
+  }
+  d.lines.forEach(l=>{
+    const p=DB.products.find(p=>p.id===l.productId);
+    p.stock[d.wh]-=l.qty;
+    addLedger('Delivery', l.productId, -l.qty, d.wh, d.id);
+  });
+  d.status='Done'; save(); render(); toast('Delivery validated — stock decreased.');
+}
+
+// ---------- Internal Transfers ----------
+function renderTransfers(){
+  const list=DB.transfers;
+  return `
+  <div class="topbar"><h2>Internal Transfers</h2><button class="btn btn-primary" onclick="transferModal()">+ New Transfer</button></div>
+  <div class="card">
+  ${list.length? `<table><tr><th>Ref</th><th>From</th><th>To</th><th>Lines</th><th>Status</th><th></th></tr>
+    ${list.map(t=>`<tr><td>${t.id}</td><td>${whName(t.from)}</td><td>${whName(t.to)}</td>
+      <td>${t.lines.map(l=>prodName(l.productId)+' x'+l.qty).join(', ')}</td><td>${statusBadge(t.status)}</td>
+      <td>${t.status!=='Done'?`<button class="btn btn-sm btn-primary" onclick="validateTransfer('${t.id}')">Validate</button>`:''}</td></tr>`).join('')}
+    </table>`:'<div class="empty">No transfers yet.</div>'}
+  </div>`;
+}
+function transferModal(){
+  openModal(`
+    <h3>New Internal Transfer</h3>
+    <div class="row2">
+      <div class="field"><label>From</label><select id="t_from">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
+      <div class="field"><label>To</label><select id="t_to">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
+    </div>
+    <label>Products</label>
+    <div id="t_lines">${lineRowsHtml()}</div>
+    <button class="btn btn-sm" onclick="addLineRow('t_lines')">+ Add line</button>
+    <div class="mtop" style="margin-top:14px">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTransfer()">Create (Draft)</button>
+    </div>
+  `);
+}
+function saveTransfer(){
+  const from=document.getElementById('t_from').value, to=document.getElementById('t_to').value;
+  const lines=collectLines('t_lines');
+  if(from===to){toast('Source and destination must differ.');return;}
+  if(!lines.length){toast('Add at least one product line.');return;}
+  DB.transfers.push({id:nextId('INT-'),from,to,lines,status:'Waiting',date:new Date().toISOString()});
+  save(); closeModal(); render(); toast('Transfer created.');
+}
+function validateTransfer(id){
+  const t=DB.transfers.find(t=>t.id===id); if(!t||t.status==='Done')return;
+  for(const l of t.lines){
+    const p=DB.products.find(p=>p.id===l.productId);
+    if((p.stock[t.from]||0) < l.qty){ toast(`Not enough stock of ${p.name} in ${whName(t.from)}.`); return; }
+  }
+  t.lines.forEach(l=>{
+    const p=DB.products.find(p=>p.id===l.productId);
+    p.stock[t.from]-=l.qty; p.stock[t.to]=(p.stock[t.to]||0)+l.qty;
+    addLedger('Transfer', l.productId, l.qty, `${whName(t.from)} → ${whName(t.to)}`, t.id);
+  });
+  t.status='Done'; save(); render(); toast('Transfer validated.');
+}
+
+// ---------- Adjustments ----------
+function renderAdjustments(){
+  const list=DB.adjustments;
+  return `
+  <div class="topbar"><h2>Inventory Adjustment</h2><button class="btn btn-primary" onclick="adjustModal()">+ New Adjustment</button></div>
+  <div class="card">
+  ${list.length? `<table><tr><th>Ref</th><th>Product</th><th>Location</th><th>Before</th><th>Counted</th><th>Diff</th><th>Date</th></tr>
+    ${list.map(a=>`<tr><td>${a.id}</td><td>${prodName(a.productId)}</td><td>${whName(a.location)}</td>
+      <td>${a.before}</td><td>${a.counted}</td><td>${a.counted-a.before>=0?'+':''}${a.counted-a.before}</td>
+      <td>${new Date(a.date).toLocaleDateString()}</td></tr>`).join('')}
+    </table>`:'<div class="empty">No adjustments logged yet.</div>'}
+  </div>`;
+}
+function adjustModal(){
+  openModal(`
+    <h3>New Stock Adjustment</h3>
+    <div class="field"><label>Product</label><select id="a_prod" onchange="updateAdjCurrent()">${DB.products.map(p=>`<option value="${p.id}">${p.name} (${p.sku})</option>`).join('')}</select></div>
+    <div class="field"><label>Location</label><select id="a_loc" onchange="updateAdjCurrent()">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
+    <p style="font-size:13px;color:var(--muted)">Recorded stock: <b id="a_current">-</b></p>
+    <div class="field"><label>Physical counted quantity</label><input id="a_counted" type="number"></div>
+    <div class="mtop" style="margin-top:14px">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAdjustment()">Save & Apply</button>
+    </div>
+  `);
+  updateAdjCurrent();
+}
+function updateAdjCurrent(){
+  const p=DB.products.find(p=>p.id===document.getElementById('a_prod').value);
+  const loc=document.getElementById('a_loc').value;
+  document.getElementById('a_current').textContent = p? (p.stock[loc]||0) : '-';
+}
+function saveAdjustment(){
+  const pid=document.getElementById('a_prod').value;
+  const loc=document.getElementById('a_loc').value;
+  const counted=Number(document.getElementById('a_counted').value);
+  if(isNaN(counted)||counted<0){toast('Enter a valid counted quantity.');return;}
+  const p=DB.products.find(p=>p.id===pid);
+  const before=p.stock[loc]||0;
+  p.stock[loc]=counted;
+  DB.adjustments.push({id:nextId('ADJ-'),productId:pid,location:loc,before,counted,date:new Date().toISOString()});
+  addLedger('Adjustment', pid, counted-before, loc, 'Physical count');
+  save(); closeModal(); render(); toast('Adjustment applied.');
+}
+
+// ---------- Ledger ----------
+function renderLedger(){
+  const type=window._lFilter||'';
+  const list=DB.ledger.filter(l=>!type||l.type===type);
+  const types=[...new Set(DB.ledger.map(l=>l.type))];
+  return `
+  <div class="topbar"><h2>Move History (Stock Ledger)</h2></div>
+  <div class="filters"><select onchange="window._lFilter=this.value;render()"><option value="">All types</option>${types.map(t=>`<option ${t===type?'selected':''}>${t}</option>`).join('')}</select></div>
+  <div class="card">
+  ${list.length? `<table><tr><th>Date</th><th>Type</th><th>Product</th><th>Qty change</th><th>Location</th><th>Ref</th></tr>
+    ${list.map(l=>`<tr><td>${new Date(l.date).toLocaleString()}</td><td>${l.type}</td><td>${prodName(l.productId)}</td>
+      <td style="color:${l.qty<0?'var(--danger)':'var(--ok)'}">${l.qty>0?'+':''}${l.qty}</td><td>${l.location}</td><td>${l.ref}</td></tr>`).join('')}
+    </table>`:'<div class="empty">No stock movements logged yet.</div>'}
+  </div>`;
+}
+
+// ---------- Warehouses ----------
+function renderWarehouses(){
+  return `
+  <div class="topbar"><h2>Warehouses</h2><button class="btn btn-primary" onclick="whModal()">+ New Warehouse</button></div>
+  <div class="card">
+  <table><tr><th>Name</th><th>Products stored</th></tr>
+  ${DB.warehouses.map(w=>`<tr><td>${w.name}</td><td>${DB.products.filter(p=>(p.stock[w.id]||0)>0).length}</td></tr>`).join('')}
+  </table>
+  </div>`;
+}
+function whModal(){
+  openModal(`<h3>New Warehouse</h3>
+    <div class="field"><label>Name</label><input id="w_name" placeholder="e.g. Warehouse 2"></div>
+    <div class="mtop" style="margin-top:14px"><button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveWarehouse()">Save</button></div>`);
+}
+function saveWarehouse(){
+  const name=document.getElementById('w_name').value.trim();
+  if(!name){toast('Name is required.');return;}
+  const id=nextId('w');
+  DB.warehouses.push({id,name});
+  DB.products.forEach(p=>p.stock[id]=0);
+  save(); closeModal(); render(); toast('Warehouse added.');
+}
+
+// ---------- Profile ----------
+function renderProfile(){
+  const u=currentUser();
+  return `
+  <div class="topbar"><h2>My Profile</h2></div>
+  <div class="card" style="max-width:400px">
+    <div class="field"><label>Name</label><input value="${u.name}" onchange="u_setName(this.value)"></div>
+    <div class="field"><label>Email</label><input value="${u.email}" disabled></div>
+    <button class="btn" onclick="logout()" style="margin-top:8px">Logout</button>
+  </div>`;
+}
+function u_setName(v){ const u=currentUser(); u.name=v.trim()||u.name; save(); toast('Profile updated.'); }
+
+// ---------- Init ----------
+document.getElementById('modalBg').addEventListener('click',e=>{ if(e.target.id==='modalBg') closeModal(); });
+if(DB.session && DB.users.find(u=>u.email===DB.session)){ enterApp(); } else { showScreen('authLogin'); }
+</script>
+</body>
+</html>v
